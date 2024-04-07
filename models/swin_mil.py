@@ -340,7 +340,7 @@ class Swin_MIL(nn.Module):
             x3 = self.decoder3(deep3)
             x4 = self.decoder4(_4_refine) # change
             cls4 = nn.functional.adaptive_max_pool2d(_4_refine,(1,1))
-            cls4 = self.classifier(cls4)
+            # cls4 = self.classifier(cls4)
             cls4 = cls4.view(-1, 4) # luad & bcss
             seg = self.decoder(_x)
             
@@ -372,4 +372,4 @@ class Swin_MIL(nn.Module):
         # logits = self.outc(x)
 
         # return x1, x2, x3, x, _attns, deep3, seg
-        return cls4, x2, x3, x4_refine, x, seg
+        return cls4, x2, x3, x4, x, seg
