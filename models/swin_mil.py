@@ -16,11 +16,11 @@ class Net(nn.Module):
         self.fc8 = nn.Conv2d(320, num_classes, 1, bias=False)
         self.fc9 = nn.Conv2d(512, num_classes, 1, bias=False)
 
-        self.f8_3 = torch.nn.Conv2d(64 , 32, 1, bias=False)
-        self.f8_4 = torch.nn.Conv2d(128, 64, 1, bias=False)
+        self.f8_3 = torch.nn.Conv2d(64 , 64, 1, bias=False)
+        self.f8_4 = torch.nn.Conv2d(128, 128, 1, bias=False)
         
-        self.f9_1 = torch.nn.Conv2d(96+3, 96, 1, bias=False)
-        self.f9_2 = torch.nn.Conv2d(96+3, 96, 1, bias=False)
+        self.f9_1 = torch.nn.Conv2d(192+3, 192, 1, bias=False)
+        self.f9_2 = torch.nn.Conv2d(192+3, 192, 1, bias=False)
         
         torch.nn.init.xavier_uniform_(self.fc8.weight)
         torch.nn.init.xavier_uniform_(self.fc9.weight)
@@ -61,8 +61,8 @@ class Net(nn.Module):
         f8_4 = F.relu(self.f8_4(x2), inplace=True)
         
         x_s = F.interpolate(x, (h, w), mode='bilinear',align_corners=True) 
-        f = torch.cat([x_s, f8_3, f8_4], dim=1) # [32, 96+3, 14, 14]
-        n, c, h, w = f.size() # [32, 96+3, 14, 14]
+        f = torch.cat([x_s, f8_3, f8_4], dim=1) # [32, 192+3, 14, 14]
+        n, c, h, w = f.size() # [32, 192+3, 14, 14]
         
         # ----> Attention
         q = self.f9_1(f).view(n, -1, h*w) 
