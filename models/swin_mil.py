@@ -13,20 +13,22 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.dropout7 = torch.nn.Dropout2d(0.5)
 
-        self.fc8 = nn.Conv2d(512, num_classes, 1, bias=False)
+        self.fc8 = nn.Conv2d(320, num_classes, 1, bias=False)
+        self.fc9 = nn.Conv2d(512, num_classes, 1, bias=False)
 
-        self.f8_3 = torch.nn.Conv2d(128, 64, 1, bias=False)
-        self.f8_4 = torch.nn.Conv2d(320, 128, 1, bias=False)
+        self.f8_3 = torch.nn.Conv2d(64 , 32, 1, bias=False)
+        self.f8_4 = torch.nn.Conv2d(128, 64, 1, bias=False)
         
-        self.f9_1 = torch.nn.Conv2d(192+3, 192, 1, bias=False)
-        self.f9_2 = torch.nn.Conv2d(192+3, 192, 1, bias=False)
+        self.f9_1 = torch.nn.Conv2d(96+3, 96, 1, bias=False)
+        self.f9_2 = torch.nn.Conv2d(96+3, 96, 1, bias=False)
         
         torch.nn.init.xavier_uniform_(self.fc8.weight)
+        torch.nn.init.xavier_uniform_(self.fc9.weight)
         torch.nn.init.kaiming_normal_(self.f8_3.weight)
         torch.nn.init.kaiming_normal_(self.f8_4.weight)
         torch.nn.init.xavier_uniform_(self.f9_1.weight, gain=4)
         torch.nn.init.xavier_uniform_(self.f9_2.weight, gain=4)
-        self.from_scratch_layers = [self.f8_3, self.f8_4, self.f9_1, self.f9_2, self.fc8]
+        self.from_scratch_layers = [self.f8_3, self.f8_4, self.f9_1, self.f9_2, self.fc8, self.fc9]
         
     def get_norm_cam_d(self, cam):
         """normalize the activation vectors of each pixel by supressing foreground non-maximum activations to zeros"""
@@ -42,24 +44,25 @@ class Net(nn.Module):
             
         return cam_d_norm
 
-    def forward(self, x, x1, x2, deep3, _4): # x2: [32,128,28,28] deep3: [32,320,14,14] _4: [32,512,14,14]
+    def forward(self, x, x1, x2, deep3, _4): # x1: [32,64,56,56]? x2: [32,128,28,28] deep3: [32,320,14,14] _4: [32,512,14,14]
         N, C, H, W = x.size()  # [32, 3, 224, 224]
         
+        cam_3 = self.fc8(deep3)
+        cam_4 = self.fc9(self.dropout7(_4)) 
+        n, c, h, w = cam_4.size() # [32,4,14,14]
 
-        cam = self.fc8(self.dropout7(_4)) 
-        n, c, h, w = cam.size() # [32,4,14,14]
-
-        cam_d_norm = self.get_norm_cam_d(cam)
-        
+        cam_3_d_norm = self.get_norm_cam_d(cam_3)
+        cam_4_d_norm = self.get_norm_cam_d(cam_4)
         
         # ----> Get Concated Feature
+        x1 = F.interpolate(x1, (h, w), mode='bilinear', align_corners=True)
         x2 = F.interpolate(x2, (h,w), mode='bilinear', align_corners=True)
-        f8_3 = F.relu(self.f8_3(x2), inplace=True) 
-        f8_4 = F.relu(self.f8_4(deep3), inplace=True)
+        f8_3 = F.relu(self.f8_3(x1), inplace=True) 
+        f8_4 = F.relu(self.f8_4(x2), inplace=True)
         
         x_s = F.interpolate(x, (h, w), mode='bilinear',align_corners=True) 
-        f = torch.cat([x_s, f8_3, f8_4], dim=1) # [32, 192+3, 14, 14]
-        n, c, h, w = f.size() # [32, 192+3, 14, 14]
+        f = torch.cat([x_s, f8_3, f8_4], dim=1) # [32, 96+3, 14, 14]
+        n, c, h, w = f.size() # [32, 96+3, 14, 14]
         
         # ----> Attention
         q = self.f9_1(f).view(n, -1, h*w) 
@@ -75,14 +78,15 @@ class Net(nn.Module):
         
         # pcam_refine = self.RFM(pcam_d_norm, A, h, w)
         # pcam_rv = F.interpolate(pcam_refine, (H, W), mode='bilinear', align_corners=True)
-        
-        cam_refine = self.RFM(cam_d_norm, A, h, w) # [32,4,14,14]
+
+        cam_3_refine = self.RFM(cam_3_d_norm, A, h, w) # [32,4,14,14]
+        cam_4_refine = self.RFM(cam_4_d_norm, A, h, w) # [32,4,14,14]
 
         # cam_rv = F.interpolate(cam_refine, (H, W), mode='bilinear', align_corners=True) 
         
         # cam = F.interpolate(cam, (H, W), mode='bilinear', align_corners=True) 
         
-        return cam_refine
+        return cam_3_refine, cam_4_refine
 
     def RFM(self, cam, A, h, w): 
         n = A.size()[0]
@@ -144,11 +148,11 @@ class Swin_MIL(nn.Module):
             self.backbone = mit_b4(stride=self.stride)
             self.in_channels = self.backbone.embed_dims
             self.backbone_name = 'mit_b4'
-            # self.decoder1 = nn.Sequential(
-            #     nn.Conv2d(64, classes, 1),
-            #     nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
-            #     nn.Sigmoid()
-            # )
+            self.decoder1 = nn.Sequential(
+                nn.Conv2d(64, classes, 1),
+                nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
+                nn.Sigmoid()
+            )
             self.decoder2 = nn.Sequential(
                 nn.Conv2d(128, classes, 1),
                 nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True),
@@ -203,7 +207,7 @@ class Swin_MIL(nn.Module):
             #     nn.Sigmoid()
             # )
             self.decoder3 = nn.Sequential(
-                nn.Conv2d(320, classes, 1),
+                #nn.Conv2d(320, classes, 1),
                 nn.Upsample(scale_factor=16, mode="bilinear", align_corners=True),
                 nn.Sigmoid()
             )
@@ -240,7 +244,7 @@ class Swin_MIL(nn.Module):
             #     nn.Sigmoid()
             # )
             self.decoder3 = nn.Sequential(
-                nn.Conv2d(320, classes, 1),
+                #nn.Conv2d(320, classes, 1),
                 nn.Upsample(scale_factor=16, mode="bilinear", align_corners=True),
                 nn.Sigmoid()
             )
@@ -255,7 +259,7 @@ class Swin_MIL(nn.Module):
             self.refine_module = Net(num_classes=classes)
         
 
-        self.w = [0.3, 0.4, 0.3]
+        self.w = [0.05, 0.1, 0.35, 0.3] # 0.3 0.4 0.3
         self.classifier = nn.Conv2d(in_channels=self.in_channels[3], out_channels=classes, kernel_size=1, bias=False)
 
         self.attn_proj = nn.Conv2d(in_channels=16, out_channels=1, kernel_size=1, bias=True)
@@ -313,16 +317,17 @@ class Swin_MIL(nn.Module):
             return x1, x2, x3, x
         elif self.backbone_name == 'mit_b4' and self.ema:
             x1, x2, deep3, _4 = _x
-            # x1 = self.decoder1(x1)
-            _4_refine = self.refine_module(x,x1,x2,deep3,_4)
+            
+            deep3_refine, _4_refine = self.refine_module(x,x1,x2,deep3,_4)
 
+            x1 = self.decoder1(x1)
             x2 = self.decoder2(x2)
-            x3 = self.decoder3(deep3)
-            x4 = self.decoder4(_4_refine) # change
+            x3 = self.decoder3(deep3_refine) # change
+            x4 = self.decoder4(_4_refine) 
 
             # x = self.w[0] * x4 + self.w[1] * x3
             
-            x = self.w[0] * x2 + self.w[1] * x3 + self.w[2] * x4
+            x = self.w[0] * x1 + self.w[1] * x2 + self.w[2] * x3 + self.w[3]
             # x = (x2+x3+x4)/3
             # print(x.shape)
             # x = 0.6*x3 + 0.4*x2
@@ -335,16 +340,18 @@ class Swin_MIL(nn.Module):
 
         else:
             x1, x2, deep3, _4 = _x
-            _4_refine = self.refine_module(x, x1, x2, deep3, _4)
+            deep3_refine, _4_refine = self.refine_module(x, x1, x2, deep3, _4)
+
+            x1 = self.decoder1(x1)
             x2 = self.decoder2(x2)
-            x3 = self.decoder3(deep3)
-            x4 = self.decoder4(_4_refine) # change
-            cls4 = nn.functional.adaptive_max_pool2d(_4_refine,(1,1))
-            # cls4 = self.classifier(cls4)
+            x3 = self.decoder3(deep3_refine) # change
+            x4 = self.decoder4(_4_refine) 
+            cls4 = nn.functional.adaptive_max_pool2d(_4,(1,1)) 
+            cls4 = self.classifier(cls4)
             cls4 = cls4.view(-1, 4) # luad & bcss
             seg = self.decoder(_x)
             
-            x = self.w[0] * x2 + self.w[1] * x3 + self.w[2] * x4
+            x = self.w[0] * x1 + self.w[1] * x2 + self.w[2] * x3 + self.w[3] * x4
             # print(_4.shape)
             # x = self.up1(_4, deep3)
             # x = self.up2(x, x2)
