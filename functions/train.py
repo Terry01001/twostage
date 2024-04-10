@@ -305,11 +305,11 @@ def train(opts, path_work, model, t_model, ema_model, model_old, dataloader_trai
             base_params = filter(lambda p: id(p) not in params2 + params3 + params4, model.parameters())
             # t_base_params = filter(lambda p: id(p) not in t_params3, t_model.parameters())
             params = [
-                    {'params': base_params, 'lr': lr/100, 'weight_decay': wd},
+                    {'params': base_params, 'lr': lr, 'weight_decay': wd},
                     #   {'params': model.decoder1.parameters(), 'lr': lr/100, 'weight_decay': wd},
-                      {'params': model.decoder2.parameters(), 'lr': lr/10 , 'weight_decay': wd},
-                      {'params': model.decoder3.parameters(), 'lr': lr/10 , 'weight_decay': wd},
-                      {'params': model.decoder4.parameters(), 'lr': lr/10 , 'weight_decay': wd},
+                      {'params': model.decoder2.parameters(), 'lr': lr/100 , 'weight_decay': wd},
+                      {'params': model.decoder3.parameters(), 'lr': lr/100 , 'weight_decay': wd},
+                      {'params': model.decoder4.parameters(), 'lr': lr/100 , 'weight_decay': wd},
                     ]
             # t_params = [
             #         {'params': t_base_params, 'lr': lr, 'weight_decay': wd},
@@ -645,7 +645,7 @@ def train(opts, path_work, model, t_model, ema_model, model_old, dataloader_trai
                         loss4 = loss_fn(side4, label)
                         lossf = loss_fn(fusion_, label)
                         # loss_ms = loss1 + loss2 + loss3 + lossf
-                        loss_ms = loss2 + loss3 + loss4 + lossf
+                        loss_ms = loss2 +  loss3 +  loss4 + lossf
                         loss += loss_ms
 
                     elif opts.stage == 'two' and opts.phase == 1:
