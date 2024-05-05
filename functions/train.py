@@ -264,7 +264,7 @@ def train(opts, path_work, model, t_model, ema_model, model_old, dataloader_trai
             p.requires_grad = False
 
     print('Learning Rate: ', lr)
-    loss_fn = nn.BCELoss()
+    loss_fn = nn.BCEWithLogitsLoss()
     loss_ce = nn.CrossEntropyLoss(ignore_index=4, reduction='none')
     # loss_fl = focal_loss(alpha=[1,2,2,1], gamma=2, num_classes=4)
     loss_fl = FocalLoss(ignore_index=4)

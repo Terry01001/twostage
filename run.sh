@@ -16,8 +16,11 @@ STEP="0"
 # Execute command with variables
 # python main.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 \
 # --batch_size 32 --lr $LEARNING_RATE --lr_policy $LR_POLICY --epochs $EPOCHS --task $TASK --step $STEP
+echo "Training start"
+python main.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --lr_policy $LR_POLICY --task $TASK --step 0
+
 
 # python main.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 1 \
 # --batch_size 24 --lr $LEARNING_RATE --lr_policy $LR_POLICY --epochs $EPOCHS --task $TASK --step $STEP
-
+echo "Testing"
 python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK

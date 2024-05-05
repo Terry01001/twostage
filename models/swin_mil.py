@@ -174,12 +174,12 @@ class Swin_MIL(nn.Module):
             self.decoder1 = nn.Sequential(
                 nn.Conv2d(64, classes, 1),
                 nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
-                nn.Sigmoid()
+                #nn.Sigmoid()
             )
             self.decoder2 = nn.Sequential(
                 nn.Conv2d(128, classes, 1),
                 nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True),
-                nn.Sigmoid()
+                #nn.Sigmoid()
             )
 
             # self.decoder2 = nn.Sequential(
@@ -232,12 +232,12 @@ class Swin_MIL(nn.Module):
             self.decoder3 = nn.Sequential(
                 nn.Conv2d(320, classes, 1),
                 nn.Upsample(scale_factor=16, mode="bilinear", align_corners=True),
-                nn.Sigmoid()
+                #nn.Sigmoid()
             )
             self.decoder4 = nn.Sequential(
                 # nn.Conv2d(512, classes, 1), 
                 nn.Upsample(scale_factor=16, mode="bilinear", align_corners=True),
-                nn.Sigmoid()
+                #nn.Sigmoid()
             )
             # new add
             self.refine_module = Net(num_classes=classes)
@@ -255,7 +255,7 @@ class Swin_MIL(nn.Module):
             self.decoder2 = nn.Sequential(
                 nn.Conv2d(128, classes, 1),
                 nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True),
-                nn.Sigmoid()
+                #nn.Sigmoid()
             )
             # self.decoder2 = nn.Sequential(
             #     nn.Conv2d(self.in_channels[1], self.in_channels[1] // 2, 1),
@@ -269,12 +269,12 @@ class Swin_MIL(nn.Module):
             self.decoder3 = nn.Sequential(
                 nn.Conv2d(320, classes, 1),
                 nn.Upsample(scale_factor=16, mode="bilinear", align_corners=True),
-                nn.Sigmoid()
+                #nn.Sigmoid()
             )
             self.decoder4 = nn.Sequential(
                 #nn.Conv2d(512, classes, 1),
                 nn.Upsample(scale_factor=16, mode="bilinear", align_corners=True),
-                nn.Sigmoid()
+                #nn.Sigmoid()
             )
             self.decoder = SegFormerHead(feature_strides=self.feature_strides, in_channels=self.in_channels, 
                                          embedding_dim=self.embedding_dim, num_classes=classes)
