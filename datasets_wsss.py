@@ -144,7 +144,7 @@ class Dataset_test(Dataset):
         label = self.read(self.root, 'mask/' + self.data[index], 'grdth') * 255
         image_show = self.read(self.root, 'img/' + self.data[index])
 
-        return image, label, image_show
+        return image, label#, image_show
 
     def __len__(self):
         return len(self.data)

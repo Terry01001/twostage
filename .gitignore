@@ -1,1 +1,9 @@
-*.png
+.vscode
+__pycache__
+*.txt
+data
+pretrained_models
+work
+.Rhistory
+*.git
+

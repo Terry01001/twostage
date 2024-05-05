@@ -297,19 +297,21 @@ def train(opts, path_work, model, t_model, ema_model, model_old, dataloader_trai
 
     if hp['optimizer'] == 'side':
         if opts.stage == 'two' and opts.phase == 0: 
-            # params1 = list(map(id, model.decoder1.parameters()))
+            params1 = list(map(id, model.decoder1.parameters()))
             params2 = list(map(id, model.decoder2.parameters()))
             params3 = list(map(id, model.decoder3.parameters()))
             # t_params3 = list(map(id, t_model.decoder3.parameters()))
-            params4 = list(map(id, model.decoder4.parameters()))
-            base_params = filter(lambda p: id(p) not in params2 + params3 + params4, model.parameters())
+            # params4 = list(map(id, model.decoder4.parameters()))
+            refine_params = list(map(id, model.refine_module.parameters()))
+            base_params = filter(lambda p: id(p) not in params1 + params2 + params3 + refine_params , model.parameters()) # params3 + params4
             # t_base_params = filter(lambda p: id(p) not in t_params3, t_model.parameters())
             params = [
                     {'params': base_params, 'lr': lr, 'weight_decay': wd},
-                    #   {'params': model.decoder1.parameters(), 'lr': lr/100, 'weight_decay': wd},
+                      {'params': model.decoder1.parameters(), 'lr': lr/100, 'weight_decay': wd},
                       {'params': model.decoder2.parameters(), 'lr': lr/100 , 'weight_decay': wd},
                       {'params': model.decoder3.parameters(), 'lr': lr/100 , 'weight_decay': wd},
-                      {'params': model.decoder4.parameters(), 'lr': lr/100 , 'weight_decay': wd},
+                    #   {'params': model.decoder4.parameters(), 'lr': lr/100 , 'weight_decay': wd},
+                      {'params': model.refine_module.parameters(), 'lr': lr/100 , 'weight_decay': wd}
                     ]
             # t_params = [
             #         {'params': t_base_params, 'lr': lr, 'weight_decay': wd},
@@ -424,7 +426,7 @@ def train(opts, path_work, model, t_model, ema_model, model_old, dataloader_trai
                 # side1, side2, side3, fusion = model(image)
                 # with torch.no_grad():
                 #     t_fusion = t_model(image)
-                side2, side3, side4, fusion = model(image)
+                side1, side2, side3, side4, fusion = model(image)
                 
                 bs, c, h, w = fusion.size()
 
@@ -645,6 +647,7 @@ def train(opts, path_work, model, t_model, ema_model, model_old, dataloader_trai
                         loss4 = loss_fn(side4, label)
                         lossf = loss_fn(fusion_, label)
                         # loss_ms = loss1 + loss2 + loss3 + lossf
+                        # print(loss2.item(),loss3.item(),loss4.item(),lossf.item())
                         loss_ms = loss2 +  loss3 +  loss4 + lossf
                         loss += loss_ms
 

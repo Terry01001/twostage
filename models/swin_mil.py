@@ -14,21 +14,33 @@ class Net(nn.Module):
         self.dropout7 = torch.nn.Dropout2d(0.5)
 
         self.fc8 = nn.Conv2d(512, num_classes, 1, bias=False)
-        # self.fc9 = nn.Conv2d(512, num_classes, 1, bias=False)
 
         self.f8_3 = torch.nn.Conv2d(128 , 64, 1, bias=False)
         self.f8_4 = torch.nn.Conv2d(320, 128, 1, bias=False)
         
         self.f9_1 = torch.nn.Conv2d(192+3, 192, 1, bias=False)
         self.f9_2 = torch.nn.Conv2d(192+3, 192, 1, bias=False)
+
+        # ---> another Attention
+        # self.fc9 = nn.Conv2d(512, num_classes, 1, bias=False)
+
+        # self.f8_5 = nn.Conv2d(128, 64, 1, bias=False)
+        # self.f8_6 = nn.Conv2d(320, 128, 1, bias=False)
+
+        # self.f9_3 = nn.Conv2d(192+3, 192, 1, bias=False)
+        # self.f9_4 = nn.Conv2d(192+3, 192, 1, bias=False)
         
         torch.nn.init.xavier_uniform_(self.fc8.weight)
         # torch.nn.init.xavier_uniform_(self.fc9.weight)
         torch.nn.init.kaiming_normal_(self.f8_3.weight)
         torch.nn.init.kaiming_normal_(self.f8_4.weight)
+        # torch.nn.init.kaiming_normal_(self.f8_5.weight)
+        # torch.nn.init.kaiming_normal_(self.f8_6.weight)
         torch.nn.init.xavier_uniform_(self.f9_1.weight, gain=4)
         torch.nn.init.xavier_uniform_(self.f9_2.weight, gain=4)
-        self.from_scratch_layers = [self.f8_3, self.f8_4, self.f9_1, self.f9_2, self.fc8]
+        # torch.nn.init.xavier_uniform_(self.f9_3.weight, gain=4)
+        # torch.nn.init.xavier_uniform_(self.f9_4.weight, gain=4)
+        self.from_scratch_layers = [self.f8_3, self.f8_4, self.f9_1, self.f9_2, self.fc8] #, self.fc9, self.f8_5, self.f8_6, self.f9_3, self.f9_4
         
     def get_norm_cam_d(self, cam):
         """normalize the activation vectors of each pixel by supressing foreground non-maximum activations to zeros"""
@@ -38,9 +50,9 @@ class Net(nn.Module):
             cam_d_min = torch.min(cam_d.view(n, c, -1), dim=-1)[0].view(n, c, 1, 1)
             cam_d_max = torch.max(cam_d.view(n, c, -1), dim=-1)[0].view(n, c, 1, 1) + 1e-5 # [2, 4, 1, 1] each channel has a max value (for each image in batch)
             cam_d_norm = (cam - cam_d_min) / (cam_d_max - cam_d_min) # [2, 4, 32, 32]
-            cam_d_norm[:, 0, :, :] = 1 - torch.max(cam_d_norm[:, 1:, :, :], dim=1)[0] # background channel is 0, which is calculated by 1 - max(other channels)
-            cam_max = torch.max(cam_d_norm[:, 1:, :, :], dim=1, keepdim=True)[0] # [2, 1, 32, 32], max value of each channel (except background channel)
-            cam_d_norm[:, 1:, :, :][cam_d_norm[:, 1:, :, :] < cam_max] = 0 # set the non-max value to 0
+            # cam_d_norm[:, 0, :, :] = 1 - torch.max(cam_d_norm[:, 1:, :, :], dim=1)[0] # background channel is 0, which is calculated by 1 - max(other channels)
+            # cam_max = torch.max(cam_d_norm[:, 1:, :, :], dim=1, keepdim=True)[0] # [2, 1, 32, 32], max value of each channel (except background channel)
+            # cam_d_norm[:, 1:, :, :][cam_d_norm[:, 1:, :, :] < cam_max] = 0 # set the non-max value to 0
             
         return cam_d_norm
 
@@ -48,39 +60,50 @@ class Net(nn.Module):
         N, C, H, W = x.size()  # [32, 3, 224, 224]
         
         # cam_3 = self.fc8(deep3)
-        cam_4 = self.fc8(self.dropout7(_4)) 
-        n, c, h, w = cam_4.size() # [32,4,14,14]
+        # n, c, h, w = cam_3.size() # [32,4,14,14]
 
         # cam_3_d_norm = self.get_norm_cam_d(cam_3)
-        cam_4_d_norm = self.get_norm_cam_d(cam_4)
+        # # ----> Get Concated Feature
+        # x1_s = F.interpolate(x1, (h, w), mode='bilinear', align_corners=True)
+        # x2_s = F.interpolate(x2, (h,w), mode='bilinear', align_corners=True)
+        # f8_3 = F.relu(self.f8_3(x1_s), inplace=True)
+        # f8_4 = F.relu(self.f8_4(x2_s), inplace=True)
         
-        # ----> Get Concated Feature
-        # x1 = F.interpolate(x1, (h, w), mode='bilinear', align_corners=True)
-        x2_s = F.interpolate(x2, (h,w), mode='bilinear', align_corners=True)
-        f8_3 = F.relu(self.f8_3(x2_s), inplace=True) 
-        f8_4 = F.relu(self.f8_4(deep3), inplace=True)
+        # x_s = F.interpolate(x, (h, w), mode='bilinear',align_corners=True) 
+        # f = torch.cat([x_s, f8_3, f8_4], dim=1) # [32, 96+3, 14, 14]
+        # n, c, h, w = f.size() # [32, 96+3, 14, 14]
         
-        x_s = F.interpolate(x, (h, w), mode='bilinear',align_corners=True) 
-        f = torch.cat([x_s, f8_3, f8_4], dim=1) # [32, 192+3, 14, 14]
-        n, c, h, w = f.size() # [32, 192+3, 14, 14]
-        
-        # ----> Attention
-        q = self.f9_1(f).view(n, -1, h*w) 
-        # q = q / (torch.norm(q, dim=1, keepdim=True) + 1e-5)
-        k = self.f9_2(f).view(n, -1, h*w) 
-        # k = k / (torch.norm(k, dim=1, keepdim=True) + 1e-5)
-        A = torch.matmul(q.transpose(1, 2), k) 
-        A = F.softmax(A, dim=1) # normalize over column # [32,196,196]
-        assert not torch.isnan(A).any(), A
-        
-        # pmask_refine = self.RFM(pmask_d_norm, A, h, w)
-        # pmask_rv = F.interpolate(pmask_refine, (H, W), mode='bilinear', align_corners=True)
-        
-        # pcam_refine = self.RFM(pcam_d_norm, A, h, w)
-        # pcam_rv = F.interpolate(pcam_refine, (H, W), mode='bilinear', align_corners=True)
+        # # ----> Attention
+        # q = self.f9_1(f).view(n, -1, h*w) 
+        # # q = q / (torch.norm(q, dim=1, keepdim=True) + 1e-5)
+        # k = self.f9_2(f).view(n, -1, h*w) 
+        # # k = k / (torch.norm(k, dim=1, keepdim=True) + 1e-5)
+        # A = torch.matmul(q.transpose(1, 2), k) 
+        # A = F.softmax(A, dim=1) # normalize over column # [32,196,196]
+        # assert not torch.isnan(A).any(), A
 
         # cam_3_refine = self.RFM(cam_3_d_norm, A, h, w) # [32,4,14,14]
-        cam_4_refine = self.RFM(cam_4_d_norm, A, h, w) # [32,4,14,14]
+
+        # ----> another Attention
+        cam_4 = self.fc8(self.dropout7(_4)) 
+        n, c, h, w = cam_4.size() # [32,4,14,14]
+        cam_4_d_norm = self.get_norm_cam_d(cam_4)
+
+        x2_s = F.interpolate(x2, (h, w), mode='bilinear', align_corners=True)
+        f8_5 = F.relu(self.f8_3(x2_s), inplace=True)
+        f8_6 = F.relu(self.f8_4(deep3), inplace=True)
+
+        x_s = F.interpolate(x, (h, w), mode='bilinear', align_corners=True)
+        f2 = torch.cat([x_s, f8_5, f8_6], dim=1) # [32, 192+3, 14, 14]
+        n, c, h, w = f2.size() # [32, 192+3, 14, 14]
+
+        q2 = self.f9_1(f2).view(n, -1, h*w)
+        k2 = self.f9_2(f2).view(n, -1, h*w)
+        A2 = torch.matmul(q2.transpose(1, 2), k2)
+        A2 = F.softmax(A2, dim=1) # normalize over column # [32,196,196]
+        assert not torch.isnan(A2).any(), A2
+
+        cam_4_refine = self.RFM(cam_4_d_norm, A2, h, w) # [32,4,14,14]
 
         # cam_rv = F.interpolate(cam_refine, (H, W), mode='bilinear', align_corners=True) 
         
@@ -148,11 +171,11 @@ class Swin_MIL(nn.Module):
             self.backbone = mit_b4(stride=self.stride)
             self.in_channels = self.backbone.embed_dims
             self.backbone_name = 'mit_b4'
-            # self.decoder1 = nn.Sequential(
-            #     nn.Conv2d(64, classes, 1),
-            #     nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
-            #     nn.Sigmoid()
-            # )
+            self.decoder1 = nn.Sequential(
+                nn.Conv2d(64, classes, 1),
+                nn.Upsample(scale_factor=4, mode="bilinear", align_corners=True),
+                nn.Sigmoid()
+            )
             self.decoder2 = nn.Sequential(
                 nn.Conv2d(128, classes, 1),
                 nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True),
@@ -320,21 +343,21 @@ class Swin_MIL(nn.Module):
             
             _4_refine = self.refine_module(x,x1,x2,deep3,_4)
 
-            # x1 = self.decoder1(x1)
+            x1 = self.decoder1(x1)
             x2 = self.decoder2(x2)
             x3 = self.decoder3(deep3) # change
             x4 = self.decoder4(_4_refine) 
 
             # x = self.w[0] * x4 + self.w[1] * x3
             
-            x = self.w[1] * x2 + self.w[2] * x3 + self.w[3] * x4
+            x = self.w[0]* x1+ self.w[1] * x2 + self.w[2] * x3 + self.w[3] * x4
             # x = (x2+x3+x4)/3
             # print(x.shape)
             # x = 0.6*x3 + 0.4*x2
             # x = x3
             
 
-            return x2, x3, x4, x
+            return x1, x2, x3, x4, x
 
         else:
             x1, x2, deep3, _4 = _x
