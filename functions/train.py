@@ -301,17 +301,17 @@ def train(opts, path_work, model, t_model, ema_model, model_old, dataloader_trai
             params2 = list(map(id, model.decoder2.parameters()))
             params3 = list(map(id, model.decoder3.parameters()))
             # t_params3 = list(map(id, t_model.decoder3.parameters()))
-            # params4 = list(map(id, model.decoder4.parameters()))
-            refine_params = list(map(id, model.refine_module.parameters()))
-            base_params = filter(lambda p: id(p) not in params1 + params2 + params3 + refine_params , model.parameters()) # params3 + params4
+            params4 = list(map(id, model.decoder4.parameters()))
+            #refine_params = list(map(id, model.refine_module.parameters()))
+            base_params = filter(lambda p: id(p) not in params1 + params2 + params3 + params4 , model.parameters()) # refine_params
             # t_base_params = filter(lambda p: id(p) not in t_params3, t_model.parameters())
             params = [
                     {'params': base_params, 'lr': lr, 'weight_decay': wd},
                       {'params': model.decoder1.parameters(), 'lr': lr/100, 'weight_decay': wd},
                       {'params': model.decoder2.parameters(), 'lr': lr/100 , 'weight_decay': wd},
                       {'params': model.decoder3.parameters(), 'lr': lr/100 , 'weight_decay': wd},
-                    #   {'params': model.decoder4.parameters(), 'lr': lr/100 , 'weight_decay': wd},
-                      {'params': model.refine_module.parameters(), 'lr': lr/100 , 'weight_decay': wd}
+                      {'params': model.decoder4.parameters(), 'lr': lr/100 , 'weight_decay': wd},
+                    #   {'params': model.refine_module.parameters(), 'lr': lr/100 , 'weight_decay': wd}
                     ]
             # t_params = [
             #         {'params': t_base_params, 'lr': lr, 'weight_decay': wd},
@@ -896,14 +896,11 @@ def train(opts, path_work, model, t_model, ema_model, model_old, dataloader_trai
                 best_FWIoU = result['FWIoU']
                 best_IoU = result['ious']
 
-                if opts.phase == 0:
-                    torch.save(model.state_dict(), path_work + f's{opts.step}_{opts.dataset}_p{opts.phase}_best_model.pth')
-                else:
-                    torch.save(model.state_dict(), path_work + f's{opts.step}_{opts.dataset}_p{opts.phase}_best_model.pth')
-        if opts.phase == 0:
-            torch.save(model.state_dict(), path_work + f's{opts.step}_{opts.dataset}_p{opts.phase}_final_model.pth')
-        else:
-            torch.save(model.state_dict(), path_work + f's{opts.step}_{opts.dataset}_p{opts.phase}_final_model.pth')
+                
+                torch.save(model.state_dict(), path_work + f's{opts.step}_{opts.dataset}_p{opts.phase}_{opts.weights[0]}_{opts.weights[1]}_{opts.weights[2]}_{opts.weights[3]}_best_model.pth')
+                        
+    torch.save(model.state_dict(), path_work + f's{opts.step}_{opts.dataset}_p{opts.phase}_{opts.weights[0]}_{opts.weights[1]}_{opts.weights[2]}_{opts.weights[3]}_final_model.pth')
+        
         # torch.save(model.state_dict(), path_work + f's{opts.step}_p2_final_model.pth')
 
     # print('best result: %.3f' % best_mIoU)

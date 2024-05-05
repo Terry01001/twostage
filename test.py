@@ -25,6 +25,7 @@ import numpy as np
 from sklearn import metrics
 from tool.metrics import Evaluator, Evaluator_BCSS
 from tqdm import tqdm
+import logging
 
 
 class Tester(object):
@@ -66,7 +67,7 @@ class Tester(object):
         if self.opts.step_ckpt is not None:
             path = self.opts.step_ckpt
         else:
-            path = f'work/test/s{self.opts.step}_{self.opts.dataset}_p0_final_model.pth'
+            path = f's{self.opts.step}_{self.opts.dataset}_p{self.opts.phase}_{self.opts.weights[0]}_{self.opts.weights[1]}_{self.opts.weights[2]}_{self.opts.weights[3]}_best_model.pth'
         step_checkpoint = torch.load(path, map_location="cpu")
         # checkpoint = torch.load('checkpoints/stage2_checkpoint_trained_on_'+self.args.dataset+'.pth')
         self.model.load_state_dict(step_checkpoint, strict=True) 
@@ -107,11 +108,30 @@ class Tester(object):
             print('IoUs: ', ious)
 
 
+            # loginfo
+            weights_str = "_".join(map(str, self.opts.weights))  # Create a string from the weights list
+            logging.info(f'Test Results with Weights {weights_str}:')
+            logging.info(f"     Acc:{Acc}, Acc_class:{Acc_class}, mIoU:{mIoU}, fwIoU: {FWIoU}")
+            logging.info(f'     IoUs: {ious}')
+
+
 
 def main():
     parser = argparser.get_argparser()
     opts = parser.parse_args()
     opts = argparser.modify_command_options(opts)
+
+    mode = 'w' if opts.first_run else 'a'
+    if not os.path.exists(opts.log_dir):
+        os.makedirs(opts.log_dir, exist_ok=True)
+
+    logging.basicConfig(level=logging.INFO,
+                        format='%(message)s',
+                        filename=os.path.join(opts.log_dir, f'testset_with_diff_weights.log'),
+                        filemode=mode)
+
+
+
     tester = Tester(opts)
     tester.test()
 

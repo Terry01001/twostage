@@ -235,12 +235,12 @@ class Swin_MIL(nn.Module):
                 #nn.Sigmoid()
             )
             self.decoder4 = nn.Sequential(
-                # nn.Conv2d(512, classes, 1), 
+                nn.Conv2d(512, classes, 1), 
                 nn.Upsample(scale_factor=16, mode="bilinear", align_corners=True),
                 #nn.Sigmoid()
             )
             # new add
-            self.refine_module = Net(num_classes=classes)
+            # self.refine_module = Net(num_classes=classes)
             
 
 
@@ -282,7 +282,7 @@ class Swin_MIL(nn.Module):
             self.refine_module = Net(num_classes=classes)
         
 
-        self.w = [0.0, 0.3, 0.4, 0.3] # 0.3 0.4 0.3
+        self.w = opts.weights
         self.classifier = nn.Conv2d(in_channels=self.in_channels[3], out_channels=classes, kernel_size=1, bias=False)
 
         self.attn_proj = nn.Conv2d(in_channels=16, out_channels=1, kernel_size=1, bias=True)
@@ -341,12 +341,12 @@ class Swin_MIL(nn.Module):
         elif self.backbone_name == 'mit_b4' and self.ema:
             x1, x2, deep3, _4 = _x
             
-            _4_refine = self.refine_module(x,x1,x2,deep3,_4)
+            #_4_refine = self.refine_module(x,x1,x2,deep3,_4)
 
             x1 = self.decoder1(x1)
             x2 = self.decoder2(x2)
             x3 = self.decoder3(deep3) # change
-            x4 = self.decoder4(_4_refine) 
+            x4 = self.decoder4(_4)  # _4_refine
 
             # x = self.w[0] * x4 + self.w[1] * x3
             

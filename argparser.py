@@ -216,4 +216,10 @@ def get_argparser():
                         help="Dist on bkg prior")
     parser.add_argument("--l_seg", type=float, default=1)
 
+    parser.add_argument("--weights",nargs='+',type=float,help="List of weights for decoders",default=[0.0,0.3,0.4,0.3])
+
+    parser.add_argument("--log_dir",type=str, help="path to Log directory (default: ./logs)", default='./logs')
+
+    parser.add_argument("--first_run",action='store_true', default=False, help="First run of the test.py to determine the logfile openmode")
+
     return parser
