@@ -67,7 +67,7 @@ class Tester(object):
         if self.opts.step_ckpt is not None:
             path = self.opts.step_ckpt
         else:
-            path = f's{self.opts.step}_{self.opts.dataset}_p{self.opts.phase}_{self.opts.weights[0]}_{self.opts.weights[1]}_{self.opts.weights[2]}_{self.opts.weights[3]}_best_model.pth'
+            path = f'/work/test/s{self.opts.step}_{self.opts.dataset}_p{self.opts.phase}_{self.opts.weights[0]}_{self.opts.weights[1]}_{self.opts.weights[2]}_{self.opts.weights[3]}_best_model.pth'
         step_checkpoint = torch.load(path, map_location="cpu")
         # checkpoint = torch.load('checkpoints/stage2_checkpoint_trained_on_'+self.args.dataset+'.pth')
         self.model.load_state_dict(step_checkpoint, strict=True) 
