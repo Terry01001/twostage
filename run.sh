@@ -33,16 +33,26 @@ do
         w4=$(echo "1.0 - $w2 - $w3" | bc)
         WEIGHTS=(0.0 $w2 $w3 $w4)
 
-        echo "Training start with weights ${weights[@]}"
-        python main.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --lr_policy $LR_POLICY --task $TASK --step 0 --weights ${WEIGHTS[@]}
-
-        if [ $FIRST_RUN = true ]; then
-            echo "Testing with weights ${weights[@]}"
-            python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR --first_run $FIRST_RUN
+        #echo "Training start with weights ${weights[@]}"
+        #python main.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --lr_policy $LR_POLICY --task $TASK --step 0 --weights ${WEIGHTS[@]}
+        if [[ $(echo "($w2 == 0.2 && $w3 == 0.35 && $w4 == 0.45) || ($w2 == 0.2 && $w3 == 0.4 && $w4 == 0.4)" | bc) -eq 1 ]]; then
+            echo "Testing with weights ${WEIGHTS[@]}"
+            python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR --first_run
             FIRST_RUN=false
         else
-            echo "Testing with weights ${weights[@]}"
-            python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR --first_run $FIRST_RUN
+            echo "Training start with weights ${WEIGHTS[@]}"
+            python main.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --lr_policy $LR_POLICY --task $TASK --step 0 --weights ${WEIGHTS[@]}
+
+
+        # 縮排
+            if [ $FIRST_RUN = true ]; then
+                echo "Testing with weights ${weights[@]}"
+                python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR #--first_run
+                #FIRST_RUN=false
+            else
+                echo "Testing with weights ${weights[@]}"
+                python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR 
+            fi
         fi
     done
 done
