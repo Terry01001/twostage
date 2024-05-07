@@ -67,7 +67,7 @@ class Tester(object):
         if self.opts.step_ckpt is not None:
             path = self.opts.step_ckpt
         else:
-            path = f'/work/test/s{self.opts.step}_{self.opts.dataset}_p{self.opts.phase}_{self.opts.weights[0]}_{self.opts.weights[1]}_{self.opts.weights[2]}_{self.opts.weights[3]}_best_model.pth'
+            path = f'./work/test/s{self.opts.step}_{self.opts.dataset}_p{self.opts.phase}_{self.opts.weights[0]}_{self.opts.weights[1]}_{self.opts.weights[2]}_{self.opts.weights[3]}_best_model.pth'
         step_checkpoint = torch.load(path, map_location="cpu")
         # checkpoint = torch.load('checkpoints/stage2_checkpoint_trained_on_'+self.args.dataset+'.pth')
         self.model.load_state_dict(step_checkpoint, strict=True) 
@@ -116,28 +116,41 @@ class Tester(object):
 
 
 
-def main():
+
+
+
+def main(opts):
+
+    tester = Tester(opts)
+    tester.test()
+
+    # for handler in logging.getLogger().handlers:
+    #     handler.flush()
+    #     handler.close()
+
+    
+
+
+if __name__ == "__main__":
+
     parser = argparser.get_argparser()
     opts = parser.parse_args()
     opts = argparser.modify_command_options(opts)
 
     mode = 'w' if opts.first_run else 'a'
+    # print(mode)
+    # print(os.path.join(opts.log_dir, f'testset_with_diff_weights.log'))
     if not os.path.exists(opts.log_dir):
         os.makedirs(opts.log_dir, exist_ok=True)
 
-    logging.basicConfig(level=logging.INFO,
-                        format='%(message)s',
-                        filename=os.path.join(opts.log_dir, f'testset_with_diff_weights.log'),
-                        filemode=mode)
+    logging.basicConfig(
+        filename=os.path.join(opts.log_dir, f'experiment.log'),
+        level=logging.INFO,
+        format='%(message)s',#'%(message)s',
+        filemode=mode
+        )
 
-
-
-    tester = Tester(opts)
-    tester.test()
-
-
-if __name__ == "__main__":
-    main()
+    main(opts)
 
 # def test(path_work, model, dataloader, device, weight=None):
 #     if weight is None:

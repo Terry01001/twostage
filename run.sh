@@ -35,10 +35,13 @@ do
 
         #echo "Training start with weights ${weights[@]}"
         #python main.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --lr_policy $LR_POLICY --task $TASK --step 0 --weights ${WEIGHTS[@]}
-        if [[ $(echo "($w2 == 0.2 && $w3 == 0.35 && $w4 == 0.45) || ($w2 == 0.2 && $w3 == 0.4 && $w4 == 0.4)" | bc) -eq 1 ]]; then
+        if [[ $(echo "($w2 == 0.2 && $w3 == 0.35 && $w4 == 0.45)" | bc) -eq 1 ]]; then
             echo "Testing with weights ${WEIGHTS[@]}"
-            python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR --first_run
+            python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR --first_run > './logs/tesetset_with_diff_weights.log'
             FIRST_RUN=false
+        elif [[ $(echo "($w2 == 0.2 && $w3 == 0.4 && $w4 == 0.4)" | bc) -eq 1 ]]; then
+            echo "Testing with weights ${WEIGHTS[@]}"
+            python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR >> './logs/tesetset_with_diff_weights.log'
         else
             echo "Training start with weights ${WEIGHTS[@]}"
             python main.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --lr_policy $LR_POLICY --task $TASK --step 0 --weights ${WEIGHTS[@]}
@@ -47,11 +50,11 @@ do
         # 縮排
             if [ $FIRST_RUN = true ]; then
                 echo "Testing with weights ${weights[@]}"
-                python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR #--first_run
+                python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR >> './logs/tesetset_with_diff_weights.log' #--first_run 
                 #FIRST_RUN=false
             else
                 echo "Testing with weights ${weights[@]}"
-                python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR 
+                python test.py --backbone $BACKBONE --dataset $DATASET --stage $STAGE --phase 0 --task $TASK --step 0 --weights ${WEIGHTS[@]} --log_dir $LOG_DIR >> './logs/tesetset_with_diff_weights.log'
             fi
         fi
     done
